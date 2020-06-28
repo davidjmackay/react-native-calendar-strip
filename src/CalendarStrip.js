@@ -30,6 +30,7 @@ class CalendarStrip extends Component {
     selectedDate: PropTypes.any,
     onDateSelected: PropTypes.func,
     onWeekChanged: PropTypes.func,
+    onWeekOffsetChanged: PropTypes.func,
     onHeaderSelected: PropTypes.func,
     updateWeek: PropTypes.bool,
     useIsoWeekday: PropTypes.bool,
@@ -282,6 +283,7 @@ class CalendarStrip extends Component {
     }
     this.setState(newState);
     const _selectedDate = selectedDate && selectedDate.clone();
+    console.log('new selectedDate: ', _selectedDate)
     this.props.onDateSelected && this.props.onDateSelected(_selectedDate);
   }
 
@@ -486,9 +488,17 @@ class CalendarStrip extends Component {
     return newState;
   }
 
+  _weekOffsetChanged = (weekOffset) => {
+    // onDateSelected(selectedDate.clone().add(weekOffset, 'weeks'))
+    console.log('_weekOffsetChanged: ', weekOffset)
+    let newSelectedDateFromWeekChange = this.state.startingDate.clone().add(weekOffset, 'weeks')
+    newSelectedDateFromWeekChange.day(this.state.selectedDate.day())
+    this.setSelectedDate(newSelectedDateFromWeekChange)
+  }
+
   renderDay(props) {
     return (
-      <CalendarDay {...props} />
+      <CalendarDay {...props}/>
     );
   }
 
@@ -522,6 +532,7 @@ class CalendarStrip extends Component {
           maxDate={this.props.maxDate}
           updateMonthYear={this.updateMonthYear}
           onWeekChanged={this.props.onWeekChanged}
+          onWeekOffsetChanged={this._weekOffsetChanged}
         />
       );
     }

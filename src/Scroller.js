@@ -22,6 +22,7 @@ export default class CalendarScroller extends Component {
     maxSimultaneousDays: PropTypes.number,
     updateMonthYear: PropTypes.func,
     onWeekChanged: PropTypes.func,
+    onWeekOffsetChanged: PropTypes.func,
   }
 
   static defaultProps = {
@@ -63,7 +64,6 @@ export default class CalendarScroller extends Component {
     this.state = {
       ...this.updateLayout(props.renderDayParams),
       ...this.updateDaysData(props.data),
-      numVisibleItems: 1, // updated in onLayout
     };
   }
 
@@ -97,11 +97,11 @@ export default class CalendarScroller extends Component {
 
   // Scroll right, guarding against end index.
   scrollRight = () => {
-    const newIndex = this.state.visibleStartIndex + this.state.numVisibleItems;
-    if (newIndex >= (this.state.numDays - 1)) {
-      this.rlv.scrollToEnd(true); // scroll to the very end, including padding
+    const endIndex = this.state.visibleStartIndex + this.state.numVisibleItems;
+    if (endIndex === (this.state.numDays - 1)) {
       return;
     }
+    const newIndex = Math.min(endIndex, this.state.numDays - 1 - this.state.numVisibleItems);
     this.rlv.scrollToIndex(newIndex, true);
   }
 
@@ -164,6 +164,12 @@ export default class CalendarScroller extends Component {
     });
   }
 
+  onWeekOffsetChanged = (weekOffset) => {
+    if (this.props.onWeekOffsetChanged) {
+      this.props.onWeekOffsetChanged(weekOffset)
+    }
+  }
+  
   // Track which dates are visible.
   onVisibleIndicesChanged = (all, now, notNow) => {
     const {
@@ -193,11 +199,9 @@ export default class CalendarScroller extends Component {
     {
       const visStart = visibleStartDate && visibleStartDate.clone();
       const visEnd = visibleEndDate && visibleEndDate.clone();
+      updateMonthYear && updateMonthYear(visStart, visEnd);
       onWeekChanged && onWeekChanged(visStart, visEnd);
     }
-
-    // Always update weekstart/end for WeekSelectors.
-    updateMonthYear && updateMonthYear(visibleStartDate, visibleEndDate);
 
     if (visibleStartIndex === 0) {
       this.shiftDaysBackward(visibleStartDate);
@@ -248,9 +252,36 @@ export default class CalendarScroller extends Component {
           initialRenderIndex={this.props.initialRenderIndex}
           onVisibleIndicesChanged={this.onVisibleIndicesChanged}
           isHorizontal
+          pagingEnabled={true}
           scrollViewProps={{
             showsHorizontalScrollIndicator: false,
             contentContainerStyle: {paddingRight: this.state.itemWidth / 2},
+            // onMomentumScrollBegin: () => {
+            //   // console.log('onMomentumScrollBegin')
+            // },
+            onMomentumScrollEnd: (event) => {
+              // requestAnimationFrame(() => {
+                let xOffset = event.nativeEvent.contentOffset.x
+                let day =  Math.floor(xOffset/this.state.itemWidth)
+                let dayOffset = day - this.props.initialRenderIndex
+                let weekOffset = dayOffset / 7
+                console.log('############ onMomentumScrollEnd -',
+                  // ' offset: ', xOffset, 
+                  // ' itemWidth: ', this.state.itemWidth,
+                  // ' day: ', day,
+                  // ' day offset: ', dayOffset, 
+                  ' week offset: ', dayOffset/7, 
+                )
+                this.onWeekOffsetChanged(weekOffset)
+
+              // })
+            },
+            // onScrollBeginDrag: () => {
+            //   // console.log('onScrollBeginDrag')
+            // },
+            // onScrollEndDrag: () => {
+            //   // console.log('onScrollEndDrag')
+            // },
           }}
         />
       </View>
